@@ -1,0 +1,41 @@
+# Python environment and generated files
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Each member keeps their own browser login locally
+playwright/.auth/
+**/.auth/
+**/chrome-profile/
+**/firefox-profile/
+**/*session*.json
+**/*cookies*.json
+
+# Credentials/configuration that may contain credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.pgpass
+.pg_service.conf
+
+# Collected content, review overrides, upload batches and backups stay local
+data/
+*.log
+*.har
+debug_*.png
+debug_*.html
+trace*.zip
+test-results/
+playwright-report/
+
+# Per-machine editor and OS state
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

@@ -1,0 +1,6 @@
+# Same Playwright version as the working collector.
+playwright==1.60.0
+# Psycopg 3.3+ requires a newer Python; keep existing Python 3.9 compatible.
+psycopg[binary]>=3.2,<3.3
+# Supports zoneinfo on machines without an OS timezone database, including Windows.
+tzdata
