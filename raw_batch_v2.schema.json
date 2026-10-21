@@ -1,0 +1,504 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://moobby.invalid/schemas/raw.collection.v2.json",
+  "title": "Moobby collection-only batch v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "source_key",
+    "run",
+    "records"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "raw.collection.v2"
+    },
+    "source_key": {
+      "type": "string",
+      "minLength": 1
+    },
+    "run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "collector_label",
+        "collector_version",
+        "collection_method",
+        "started_at",
+        "finished_at",
+        "run_status",
+        "stop_reason",
+        "coverage",
+        "complete_history",
+        "requested_count",
+        "captured_count",
+        "time_basis"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "collector_label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "collector_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "collection_method": {
+          "type": "string",
+          "enum": [
+            "playwright",
+            "rss",
+            "manual"
+          ]
+        },
+        "started_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "finished_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "run_status": {
+          "type": "string",
+          "enum": [
+            "running",
+            "completed",
+            "partial",
+            "failed",
+            "unknown"
+          ]
+        },
+        "stop_reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "coverage": {
+          "type": "string",
+          "minLength": 1
+        },
+        "complete_history": {
+          "type": "boolean"
+        },
+        "requested_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "maximum": 100
+        },
+        "captured_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "time_basis": {
+          "type": "string",
+          "enum": [
+            "collector_clock",
+            "item_capture_range"
+          ]
+        }
+      }
+    },
+    "records": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "platform",
+          "external_id",
+          "canonical_url",
+          "author_handle",
+          "author_display_name",
+          "title",
+          "raw_text",
+          "text_kind",
+          "text_completeness",
+          "published_at",
+          "published_at_basis",
+          "published_label",
+          "captured_at",
+          "media",
+          "media_capture_status",
+          "position_in_run",
+          "is_pinned",
+          "post_type",
+          "related_urls",
+          "capture_hash",
+          "extraction_metadata"
+        ],
+        "properties": {
+          "platform": {
+            "type": "string",
+            "enum": [
+              "x",
+              "threads",
+              "rss",
+              "web"
+            ]
+          },
+          "external_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "canonical_url": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^https://"
+          },
+          "author_handle": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "author_display_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "raw_text": {
+            "type": "string"
+          },
+          "text_kind": {
+            "type": "string",
+            "enum": [
+              "post_text",
+              "article_text",
+              "feed_excerpt",
+              "card_text",
+              "none"
+            ]
+          },
+          "text_completeness": {
+            "type": "string",
+            "enum": [
+              "full",
+              "truncated",
+              "unknown"
+            ]
+          },
+          "published_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "published_at_basis": {
+            "type": "string",
+            "enum": [
+              "dom_datetime",
+              "feed_timestamp",
+              "page_timestamp",
+              "unknown"
+            ]
+          },
+          "published_label": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "captured_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "media": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "url",
+                "alt_text",
+                "thumbnail_url"
+              ],
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "image",
+                    "video",
+                    "unknown"
+                  ]
+                },
+                "url": {
+                  "type": "string",
+                  "format": "uri",
+                  "pattern": "^https://"
+                },
+                "alt_text": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "thumbnail_url": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "uri"
+                },
+                "media_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "media_index": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "width": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 1
+                },
+                "height": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 1
+                },
+                "original_media_type": {
+                  "type": "string",
+                  "enum": [
+                    "photo",
+                    "video",
+                    "animated_gif",
+                    "unknown"
+                  ]
+                },
+                "url_role": {
+                  "type": "string",
+                  "enum": [
+                    "photo",
+                    "thumbnail"
+                  ]
+                },
+                "image_hash": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "ocr": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "status",
+                    "raw_text",
+                    "engine",
+                    "languages",
+                    "psm",
+                    "processed_at",
+                    "verification_status",
+                    "model_sha256"
+                  ],
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "completed",
+                        "failed",
+                        "not_attempted"
+                      ]
+                    },
+                    "raw_text": {
+                      "type": "string"
+                    },
+                    "engine": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "languages": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "psm": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "minimum": 0,
+                      "maximum": 13
+                    },
+                    "processed_at": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "verification_status": {
+                      "const": "not_reviewed"
+                    },
+                    "model_sha256": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "ind": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{64}$"
+                        },
+                        "eng": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{64}$"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "media_capture_status": {
+            "type": "string",
+            "enum": [
+              "captured",
+              "not_attempted",
+              "failed"
+            ]
+          },
+          "position_in_run": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "is_pinned": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "post_type": {
+            "type": "string",
+            "enum": [
+              "original",
+              "reply",
+              "repost",
+              "quote",
+              "unknown"
+            ]
+          },
+          "related_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uri",
+              "pattern": "^https://"
+            }
+          },
+          "capture_hash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "extraction_metadata": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "input_format",
+              "text_extraction_method",
+              "media_extraction_basis"
+            ],
+            "properties": {
+              "input_format": {
+                "const": "tweet-harvest-csv"
+              },
+              "text_extraction_method": {
+                "type": "string",
+                "enum": [
+                  "note_tweet",
+                  "legacy.full_text",
+                  "unknown"
+                ]
+              },
+              "media_extraction_basis": {
+                "type": "string",
+                "enum": [
+                  "extended_entities",
+                  "entities",
+                  "not_available"
+                ]
+              }
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "published_at": {
+                  "type": "null"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "published_at_basis": {
+                  "const": "unknown"
+                }
+              }
+            },
+            "else": {
+              "properties": {
+                "published_at_basis": {
+                  "not": {
+                    "const": "unknown"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "media_capture_status": {
+                  "enum": [
+                    "not_attempted",
+                    "failed"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "media": {
+                  "maxItems": 0
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

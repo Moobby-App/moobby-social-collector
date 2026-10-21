@@ -39,3 +39,8 @@ playwright-report/
 Thumbs.db
 .vscode/
 .idea/
+
+# Isolated Node/Tweet Harvest experiment
+node_modules/
+.browsers/
+tweets-data/

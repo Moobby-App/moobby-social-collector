@@ -1,0 +1,14 @@
+{
+  "name": "moobby-tweet-harvest-trial",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Isolated Tweet Harvest trial for Moobby; not the production collector",
+  "dependencies": {
+    "tweet-harvest": "2.7.1"
+  },
+  "overrides": {
+    "@playwright/test": "1.60.0",
+    "playwright": "1.60.0",
+    "playwright-core": "1.60.0"
+  }
+}

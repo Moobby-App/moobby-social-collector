@@ -171,3 +171,31 @@ Jangan commit `.venv/`, `data/`, `.env`, `playwright/.auth/`, screenshots debug,
 Pada project Supabase baru, jalankan `db/001_collection_schema.sql` lalu `db/002_sources.sql` dari SQL Editor. **Jangan menjalankan migration 001 lagi pada project tim yang sudah memiliki tabel.** Anggota baru cukup terhubung ke database yang sama.
 
 Migration memakai schema privat `collection` dan RLS. `db/003_inspect.sql` adalah query baca untuk memeriksa hasil. Supabase Free memiliki kuota dan dapat pause setelah tidak aktif; biaya/limit diperiksa pada https://supabase.com/pricing . Database Free bukan backup otomatis; simpan export sesuai kebutuhan tim.
+
+## Uji alternatif Tweet Harvest
+
+Uji terpisah, belum mengganti collector: [panduan Tweet Harvest](experiments/tweet_harvest/README.md). Node.js diperlukan. Jalankan `python try_tweet_harvest.py --account commuterline --limit 20` setelah instalasi. Token dimasukkan pada prompt tersembunyi; hasil tidak diunggah ke database.
+
+## Membaca teks gambar (OCR lokal)
+
+Setup dan format output dijelaskan di [docs/ocr.md](docs/ocr.md). Pasang Tesseract 5, lalu jalankan `python setup_ocr.py` untuk model Indonesia dan Inggris.
+
+```bash
+python try_tweet_harvest.py --account commuterline --limit 20 --use-saved-session --with-ocr
+```
+
+Untuk CSV yang sudah ada, gunakan `python ocr_tweet_images.py --input "path/commuterline_trial.csv"`. Hasil disimpan sebagai CSV baru dengan `ocr_text`, `ocr_status`, dan `ocr_results_json`. Caption, CSV sumber, dan status verifikasi berita tidak diubah. OCR dapat menghasilkan tulisan salah atau karakter dari ilustrasi; hasil mesin tetap `not_reviewed`.
+
+## Pilot dua akun → format Supabase
+
+Panduan: [docs/collection-pilot.md](docs/collection-pilot.md).
+
+```bash
+python collect_pilot.py --collector-label yuki
+```
+
+Sumber di `config/collection_sources.json`: CommuterLine dan Jalur5, target 20 per akun. Jalur ini memakai session lokal dan OCR, membuat CSV asli serta batch raw.collection.v2 per sumber. Belum upload otomatis.
+
+Sebelum upload v2 pada project yang sudah ada, jalankan `db/004_snapshot_extraction_metadata.sql` sekali di SQL Editor. Jangan buat ulang tabel 001. Setelah itu, upload manifest hasil collection melalui `upload_collection_batch.py --manifest <path>`. Ulangi manifest yang sama bila hasil upload belum pasti.
+
+Pencegahan duplikasi identitas/snapshot/observasi menggunakan UNIQUE constraints database, hash isi stabil, dan run ID. Konten berbeda yang membahas kejadian sama tetap dipertahankan untuk kurasi berikutnya.

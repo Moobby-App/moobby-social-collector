@@ -1,0 +1,10 @@
+const assert = require('node:assert/strict');
+const {normalize,candidates} = require('./compare_sources.cjs');
+const now = Date.now();
+const sample = {rest_id:'2112490082422976818',core:{user_results:{result:{core:{screen_name:'CommuterLine'}}}},legacy:{id_str:'2112490082422976818',created_at:new Date(now-1000).toISOString(),full_text:'Announcement'}};
+assert.equal(normalize(sample,'commuterline',now-86400000,now).id,sample.rest_id);
+assert.equal(normalize({...sample,legacy:{...sample.legacy,in_reply_to_status_id_str:'1'}},'commuterline',now-86400000,now),null);
+assert.equal(normalize(sample,'other',now-86400000,now),null);
+assert.equal(normalize(sample,'commuterline',now+1,now+2000),null);
+assert.equal(candidates({tweet_results:{result:sample},quoted_status_result:{result:{tweet_results:{result:sample}}}}).length,1);
+console.log('Comparison tests passed.');

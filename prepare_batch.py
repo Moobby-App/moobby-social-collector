@@ -1,5 +1,6 @@
 """Prepare a collection-only batch offline. No browser, credentials, or cloud writes."""
 import argparse
+import copy
 import hashlib
 import json
 import re
@@ -32,6 +33,12 @@ def timestamp(value):
 def capture_hash(record):
     # Exact capture, not a relevance score, event fingerprint, or truth assessment.
     snapshot = {key: record[key] for key in SNAPSHOT_FIELDS}
+    if 'extraction_metadata' in record:
+        snapshot = copy.deepcopy(snapshot)
+        snapshot['extraction_metadata'] = record['extraction_metadata']
+        for item in snapshot['media']:
+            if 'ocr' in item:
+                item['ocr'].pop('processed_at', None)
     encoded = json.dumps(snapshot, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
     return hashlib.sha256(encoded.encode('utf-8')).hexdigest()
 

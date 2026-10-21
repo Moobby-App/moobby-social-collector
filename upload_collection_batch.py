@@ -94,6 +94,14 @@ def validate_batch(batch, schema):
             raise BatchError('published_at dan asal tanggal tidak konsisten.')
         if row['media_capture_status'] != 'captured' and row['media']:
             raise BatchError('Media belum diambil tetapi daftar media tidak kosong.')
+        if batch['schema_version'] == 'raw.collection.v2':
+            for media in row['media']:
+                ocr = media.get('ocr')
+                if ocr and ocr['status'] == 'completed':
+                    if not media.get('image_hash') or not ocr['engine'] or not ocr['processed_at'] or set(ocr['model_sha256']) != {'ind', 'eng'}:
+                        raise BatchError('OCR selesai harus mempunyai hash gambar, engine, waktu, dan model.')
+                if ocr and media['type'] != 'image':
+                    raise BatchError('OCR hanya didukung untuk foto.')
         if row['capture_hash'] != capture_hash(row):
             raise BatchError('Hash tidak sesuai isi snapshot; buat ulang batch dari raw collector.')
 
@@ -120,6 +128,11 @@ def observation_signature(platform, external_id, snapshot_hash, captured_at, lab
 def upload(conn, batch):
     """Caller owns commit/rollback. All SQL values are bound parameters."""
     run = batch['run']
+    is_v2 = batch['schema_version'] == 'raw.collection.v2'
+    if is_v2:
+        column = conn.execute("SELECT 1 FROM information_schema.columns WHERE table_schema='collection' AND table_name='raw_snapshots' AND column_name='extraction_metadata'").fetchone()
+        if not column:
+            raise BatchError('Jalankan db/004_snapshot_extraction_metadata.sql dahulu pada Supabase SQL Editor.')
     # Concurrent retries of the same UUID serialize; a collision only serializes unrelated work.
     conn.execute('SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))', (run['id'],))
     source = conn.execute(
@@ -189,17 +202,22 @@ def upload(conn, batch):
                     canonical_url = CASE WHEN %s::timestamptz >= last_seen_at THEN %s ELSE canonical_url END
                 WHERE id=%s
             ''', (row['captured_at'], row['captured_at'], row['captured_at'], row['canonical_url'], content_id))
-        snapshot = conn.execute('''
+        snapshot_sql = '''
             INSERT INTO collection.raw_snapshots
               (raw_content_id, capture_hash, author_handle, author_display_name, title,
                raw_text, text_kind, text_completeness, published_at, published_at_basis,
                media, media_capture_status, captured_at)
             VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s::jsonb,%s,%s)
             ON CONFLICT (raw_content_id, capture_hash) DO NOTHING RETURNING id
-        ''', (content_id, row['capture_hash'], row['author_handle'], row['author_display_name'],
+        '''
+        snapshot_params = (content_id, row['capture_hash'], row['author_handle'], row['author_display_name'],
               row['title'], row['raw_text'], row['text_kind'], row['text_completeness'],
               row['published_at'], row['published_at_basis'], json.dumps(row['media']),
-              row['media_capture_status'], row['captured_at'])).fetchone()
+              row['media_capture_status'], row['captured_at'])
+        if is_v2:
+            snapshot_sql = snapshot_sql.replace('media, media_capture_status, captured_at)', 'media, media_capture_status, captured_at, extraction_metadata)').replace('%s::jsonb,%s,%s)', '%s::jsonb,%s,%s,%s::jsonb)')
+            snapshot_params += (json.dumps(row['extraction_metadata']),)
+        snapshot = conn.execute(snapshot_sql, snapshot_params).fetchone()
         if snapshot is not None:
             snapshot_id = snapshot[0]
             result['snapshots'] += 1
@@ -220,21 +238,37 @@ def upload(conn, batch):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--input', required=True, type=Path)
+    inputs = parser.add_mutually_exclusive_group(required=True)
+    inputs.add_argument('--input', action='append', type=Path)
+    inputs.add_argument('--manifest', type=Path)
     parser.add_argument('--validate-only', action='store_true')
     args = parser.parse_args()
     try:
-        schema = json.loads(Path(__file__).with_name('raw_batch.schema.json').read_text(encoding='utf-8'))
-        batch = json.loads(args.input.read_text(encoding='utf-8'))
-        validate_batch(batch, schema)
+        if args.manifest:
+            manifest = json.loads(args.manifest.read_text(encoding='utf-8'))
+            paths = [args.manifest.parent / item['path'] for item in manifest['batches']]
+        else:
+            paths = args.input
+        batches = []
+        for filename in paths:
+            batch = json.loads(filename.read_text(encoding='utf-8'))
+            schema_name = {'raw.collection.v1':'raw_batch.schema.json', 'raw.collection.v2':'raw_batch_v2.schema.json'}.get(batch.get('schema_version'))
+            if not schema_name:
+                raise BatchError('Versi batch tidak dikenali.')
+            schema = json.loads(Path(__file__).with_name(schema_name).read_text(encoding='utf-8'))
+            validate_batch(batch, schema)
+            batches.append(batch)
+        if not batches or len({batch['run']['id'] for batch in batches}) != len(batches):
+            raise BatchError('Daftar batch kosong atau run ID berulang.')
     except BatchError as error:
         print('Batch ditolak: {}'.format(error))
         return 1
-    except (OSError, ValueError):
+    except (OSError, ValueError, KeyError, TypeError):
         print('File batch atau kontrak schema tidak dapat dibaca. Gunakan file output prepare_batch.py.')
         return 1
-    print('Batch lolos validasi format: {} records.'.format(len(batch['records'])))
-    print('Sumber: {} | Run: {}'.format(batch['source_key'], batch['run']['id']))
+    print('Lolos validasi: {} batch; {} records.'.format(len(batches), sum(len(b['records']) for b in batches)))
+    for batch in batches:
+        print('Sumber: {} | Run: {}'.format(batch['source_key'], batch['run']['id']))
     if args.validate_only:
         print('Validasi lokal selesai. Tidak ada koneksi atau upload.')
         return 0
@@ -268,7 +302,7 @@ def main():
         with psycopg.connect(**params, prepare_threshold=None) as conn:
             conn.execute("SET LOCAL statement_timeout = '20s'")
             conn.execute("SET LOCAL lock_timeout = '15s'")
-            result = upload(conn, batch)
+            results = [(b['source_key'], upload(conn, b)) for b in sorted(batches, key=lambda b: b['source_key'])]
         # Reaching here means the connection context committed successfully.
     except BatchError as error:
         print('Upload dibatalkan dan transaksi di-rollback: {}'.format(error))
@@ -277,14 +311,12 @@ def main():
         print('Upload belum dikonfirmasi: {} | SQLSTATE: {}'.format(type(error).__name__, error.sqlstate or 'tidak tersedia'))
         print('Koneksi terputus saat commit bisa membuat hasil belum pasti. Ulangi file batch yang SAMA agar aman dari duplikasi.')
         return 1
-    if result['already_uploaded']:
-        print('Batch ini sudah tersimpan identik. Tidak ada baris baru ditambahkan.')
-    else:
-        print('Upload berhasil; transaksi selesai.')
-        print('Run baru: 1')
-        print('Konten baru: {}'.format(result['contents']))
-        print('Snapshot baru: {}'.format(result['snapshots']))
-        print('Observasi baru: {}'.format(result['observations']))
+    for source_key, result in results:
+        print('Sumber:', source_key)
+        if result['already_uploaded']:
+            print('Batch sudah tersimpan identik; tidak ada baris baru.')
+        else:
+            print('Upload berhasil: {} konten baru; {} snapshot baru; {} observasi.'.format(result['contents'], result['snapshots'], result['observations']))
     print('Tidak ada kurasi atau verifikasi berita yang dijalankan.')
     return 0
 

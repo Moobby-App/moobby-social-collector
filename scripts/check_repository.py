@@ -21,7 +21,7 @@ def forbidden_path(name):
     path = PurePosixPath(name)
     parts = path.parts
     base = path.name.lower()
-    if any(part in ('.venv', 'venv', '.auth', '__pycache__', 'chrome-profile', 'firefox-profile') for part in parts):
+    if any(part in ('.venv', 'venv', '.auth', '__pycache__', 'chrome-profile', 'firefox-profile', 'node_modules', '.browsers', 'tweets-data') for part in parts):
         return True
     if parts and parts[0] == 'data':
         return True

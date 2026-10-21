@@ -35,7 +35,8 @@ def on_failed(request):
 
 
 with sync_playwright() as p:
-    browser = p.firefox.launch(
+    browser = p.chromium.launch(
+        channel="chrome",
         headless=False,
     )
     page = browser.new_page()
