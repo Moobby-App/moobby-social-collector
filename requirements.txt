@@ -4,3 +4,5 @@ playwright==1.60.0
 psycopg[binary]>=3.2,<3.3
 # Supports zoneinfo on machines without an OS timezone database, including Windows.
 tzdata
+# OpenAI-compatible SDK used by the standalone Orvix connection check.
+openai>=1.13,<4
