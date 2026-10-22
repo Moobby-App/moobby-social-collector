@@ -199,3 +199,14 @@ Sumber di `config/collection_sources.json`: CommuterLine dan Jalur5, target 20 p
 Sebelum upload v2 pada project yang sudah ada, jalankan `db/004_snapshot_extraction_metadata.sql` sekali di SQL Editor. Jangan buat ulang tabel 001. Setelah itu, upload manifest hasil collection melalui `upload_collection_batch.py --manifest <path>`. Ulangi manifest yang sama bila hasil upload belum pasti.
 
 Pencegahan duplikasi identitas/snapshot/observasi menggunakan UNIQUE constraints database, hash isi stabil, dan run ID. Konten berbeda yang membahas kejadian sama tetap dipertahankan untuk kurasi berikutnya.
+
+
+## Pengumpulan mentah Green Line: 24 jam terakhir
+
+Untuk mengambil kandidat mentah dari dua akun pilot, pencarian lintas/stasiun, dan mention operator (termasuk balasan), gunakan:
+
+```bash
+python collect_greenline.py --collector-label yuki
+```
+
+Pengambilan awal memakai 24 jam terakhir. Run berikutnya melanjutkan dari run berhasil dengan overlap 30 menit; gunakan `--full-window` untuk mengulang 24 jam. Cache OCR antarrun otomatis aktif; detail: [docs/greenline-efficiency.md](docs/greenline-efficiency.md). Hasil JSON/CSV, media/OCR, dan jejak query tersimpan lokal di `data/greenline_sessions/`. Tidak ada pengelompokan kejadian atau upload Supabase. Gunakan `--plan-only` untuk pratinjau query atau `--no-ocr` bila OCR belum siap. Hasil akun pilot sengaja mencakup lintas lain; pencarian X tidak menjamin seluruh postingan tercakup. Detail dan batas pengambilan: [docs/greenline-collection.md](docs/greenline-collection.md).
